@@ -1,17 +1,22 @@
-use std::{fs::File, io::{self, Read, Seek, Write}};
+use std::{fs::{File, OpenOptions}, io::{self, Read, Seek, Write}, path::Path};
 
 const PAGE_SIZE: u64 = 4096;
 
 pub struct DiskManager {
     heap_file: File,
-    // next_page_id: u64,
+    next_page_id: u64,
 }
 
 impl DiskManager {
     pub fn new(heap_file: File) -> io::Result<Self> {
-        // let current_page_size = heap_file.metadata()?.len();
-        // let next_page_id = current_page_size / PAGE_SIZE;
-        Ok(Self { heap_file })
+        let current_page_size = heap_file.metadata()?.len();
+        let next_page_id = current_page_size / PAGE_SIZE;
+        Ok(Self { heap_file, next_page_id })
+    }
+
+    pub fn open(path: impl AsRef<Path>) -> io::Result<(Self)> {
+        let heap_file = OpenOptions::new().read(true).write(true).create(true).open(path)?;
+        Self::new(heap_file)
     }
 
     pub fn read_page_data(&mut self, page_id: u64, buf: &mut [u8]) -> io::Result<()> {
